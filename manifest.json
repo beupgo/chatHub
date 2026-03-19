@@ -1,0 +1,54 @@
+{
+  "manifest_version": 3,
+  "name": "ChatHub",
+  "version": "1.0",
+  "description": "你的智能工作台，覆盖新标签页。",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "chrome_url_overrides": {
+    "newtab": "index.html",
+    "home": "index.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "index.html",
+        "icons/*"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "clipboardWrite",
+    "scripting",
+    "tabs",
+    "webNavigation"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*",
+        "https://chat.qwen.ai/*",
+        "https://qwen.ai/*"
+      ],
+      "js": [
+        "content-scripts/gemini-fix.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ]
+}

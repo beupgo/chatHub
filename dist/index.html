@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChatHub</title>
+
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        user-select: none; /* 防止文本被选中 */
+        -webkit-user-select: none; /* Safari */
+        -moz-user-select: none; /* Firefox */
+        -ms-user-select: none; /* IE/Edge */
+      }
+
+      body {
+        font-family: "Arial", sans-serif;
+        height: 100vh;
+        overflow: hidden;
+        background-color: #f8f9fa;
+      }
+
+      .container {
+        display: flex;
+        height: 100vh;
+      }
+
+      .sidebar {
+        width: 120px;
+        background-color: #ffffff;
+        border-right: 1px solid #e9ecef;
+        display: flex;
+        flex-direction: column;
+        transition: width 0.3s ease;
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.05);
+        box-sizing: border-box;
+      }
+
+      .sidebar.collapsed {
+        width: 40px; /* 调整折叠后宽度至更紧凑尺寸 */
+      }
+
+      .sidebar-header,
+      .content-header {
+        height: 60px;
+        padding: 0 20px;
+        background-color: #ffffff;
+        border-bottom: 1px solid #e9ecef;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      .sidebar.collapsed .sidebar-header {
+        padding: 0 5px;
+        justify-content: center;
+      }
+
+      .sidebar-title {
+        font-weight: 600;
+        font-size: 18px;
+        color: #343a40;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        width: 100%;
+      }
+
+      .sidebar-title img {
+        width: 38px;
+        height: 38px;
+        object-fit: contain;
+        border-radius: 8px; /* 给图片添加一点圆角，更美观 */
+      }
+
+      .toggle-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .toggle-btn:hover {
+        background-color: #f1f3f5;
+      }
+
+      .toggle-btn svg {
+        width: 18px;
+        height: 18px;
+        fill: #6c757d;
+        transition: transform 0.3s;
+      }
+
+      .sidebar.collapsed ~ .content .toggle-btn svg {
+        transform: rotate(180deg);
+      }
+
+      /* 确保折叠状态正确应用 */
+      .sidebar.collapsed {
+        width: 40px !important;
+      }
+
+      .sidebar.collapsed .menu-item {
+        padding: 12px 5px;
+        justify-content: center;
+      }
+
+      .menu-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 10px 0;
+      }
+
+      .menu-item {
+        padding: 12px 20px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        border-bottom: 1px solid #f1f3f5;
+        position: relative;
+        transition: background-color 0.2s;
+      }
+
+      .menu-item:hover {
+        background-color: #f8f9fa;
+      }
+
+      .menu-item.active {
+        background-color: #e9ecef;
+        font-weight: 500;
+        color: #495057;
+      }
+
+      .menu-item.link-type {
+        opacity: 0.7;
+        font-style: italic;
+      }
+
+      .menu-item.link-type::after {
+        content: "↗";
+        margin-left: 4px;
+        font-size: 12px;
+        color: #6c757d;
+      }
+
+      .menu-item-text {
+        flex: 1;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #495057;
+      }
+
+      .menu-item-actions {
+        display: none;
+        position: absolute;
+        right: 15px;
+      }
+
+      .sidebar:not(.collapsed) .menu-item:hover .menu-item-actions {
+        display: flex;
+      }
+
+      /* 折叠状态下隐藏菜单文字和操作按钮 */
+      .sidebar.collapsed .menu-item-text {
+        display: none;
+      }
+
+      .sidebar.collapsed .menu-item-actions {
+        display: none !important;
+      }
+
+      /* 折叠状态下显示菜单图标 */
+      .menu-item-icon {
+        display: none;
+        width: 20px;
+        height: 20px;
+        margin: 0 auto;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .menu-item-icon svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .sidebar.collapsed .menu-item-icon {
+        display: flex;
+      }
+
+      .sidebar.collapsed .menu-item {
+        padding: 12px 10px;
+        justify-content: center;
+      }
+
+      .sidebar.collapsed .sidebar-title {
+        padding: 0;
+        justify-content: center;
+      }
+
+      .sidebar.collapsed .sidebar-title img {
+        width: 32px;
+        height: 32px;
+        display: block;
+        object-fit: contain;
+      }
+
+      .action-btn {
+        background: none;
+        border: none;
+        margin-left: 5px;
+        cursor: pointer;
+        color: #6c757d;
+        font-size: 14px;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .action-btn:hover {
+        background-color: #e9ecef;
+      }
+
+      .add-menu-btn {
+        margin: 15px;
+        padding: 10px 15px;
+        background-color: #4dabf7;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        text-align: center;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+
+      .add-menu-btn:hover {
+        background-color: #339af0;
+      }
+
+      .sidebar.collapsed .add-menu-btn {
+        padding: 10px;
+        font-size: 0;
+      }
+
+      .sidebar.collapsed .add-menu-btn::before {
+        content: "+";
+        font-size: 18px;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .content-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #343a40;
+        flex: 1; /* 让标题占据剩余空间 */
+        display: flex;
+        align-items: center;
+      }
+
+      .content-title .toggle-btn {
+        margin-right: 10px;
+      }
+
+      .header-links {
+        display: flex;
+        align-items: center;
+        /* margin-right: 12px; */
+      }
+
+      .header-link-item {
+        color: #007bff;
+        text-decoration: none;
+        font-size: 14px;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+        position: relative;
+        padding: 4px 8px;
+        border-radius: 4px;
+      }
+
+      .header-link-item:hover {
+        color: #0056b3;
+        text-decoration: underline;
+        background-color: rgba(0, 123, 255, 0.1);
+      }
+
+      .header-link-item svg {
+        width: 14px;
+        height: 14px;
+      }
+
+      .header-link-item .delete-btn {
+        opacity: 0;
+        transition: opacity 0.2s;
+        margin-left: 4px;
+        padding: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 2px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #6c757d;
+      }
+
+      .header-link-item:hover .delete-btn {
+        opacity: 1;
+      }
+
+      .header-link-item .delete-btn:hover {
+        background-color: #e9ecef;
+        color: white;
+      }
+
+      .add-menu-header-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .add-menu-header-btn:hover {
+        background-color: #f1f3f5;
+      }
+
+      .add-menu-header-btn svg {
+        width: 20px;
+        height: 20px;
+        /* fill: #6c757d; */
+      }
+
+      .iframe-container {
+        flex: 1;
+        position: relative;
+        background-color: #ffffff;
+      }
+
+      iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        overflow: hidden;
+      }
+
+      .error-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        max-width: 500px;
+        display: none;
+        z-index: 10;
+      }
+
+      .error-message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .error-message h3 {
+        color: #d32f2f;
+        font-size: 20px;
+        margin: 0;
+      }
+
+      .close-btn {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #6c757d;
+        font-size: 20px;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: background-color 0.2s;
+      }
+
+      .close-btn:hover {
+        background-color: #e9ecef;
+      }
+
+      .error-message p {
+        margin-bottom: 20px;
+        line-height: 1.6;
+        color: #495057;
+      }
+
+      .error-message button {
+        padding: 10px 16px;
+        background-color: #4dabf7;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+
+      .error-message button:hover {
+        background-color: #339af0;
+      }
+
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .modal-content {
+        background-color: white;
+        padding: 25px;
+        border-radius: 8px;
+        width: 450px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #4dabf7;
+        box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
+      }
+
+      .form-group input[type="checkbox"] {
+        width: auto;
+        margin: -1px 2px 0 0;
+        vertical-align: middle;
+      }
+
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-weight: 500;
+        color: #495057;
+        margin-bottom: 0;
+      }
+
+      .form-actions {
+        display: flex;
+        justify-content: flex-end;
+      }
+
+      .btn {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-left: 10px;
+        font-weight: 500;
+        transition: background-color 0.2s;
+      }
+
+      .btn-primary {
+        background-color: #4dabf7;
+        color: white;
+      }
+
+      .btn-primary:hover {
+        background-color: #339af0;
+      }
+
+      .btn-secondary {
+        background-color: #e9ecef;
+        color: #495057;
+      }
+
+      .btn-secondary:hover {
+        background-color: #dee2e6;
+      }
+
+      .notification {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background-color: #343a40;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: 1001;
+        font-size: 14px;
+      }
+
+      .notification.show {
+        opacity: 1;
+      }
+
+      .new-tab-indicator {
+        margin-left: 6px;
+        display: inline-flex;
+        align-items: center;
+        opacity: 0.7;
+      }
+
+      .sidebar.collapsed .new-tab-indicator {
+        display: none;
+      }
+
+      /* 拖拽相关样式 */
+      .menu-item {
+        cursor: grab;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .menu-item:active {
+        cursor: grabbing;
+      }
+
+      .menu-item.dragging {
+        opacity: 0.5;
+        transform: rotate(5deg);
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        position: relative;
+      }
+
+      .menu-item.drag-over {
+        border-top: 3px solid #4dabf7;
+        margin-top: 3px;
+      }
+
+      .menu-item.drag-over-bottom {
+        border-bottom: 3px solid #4dabf7;
+        margin-bottom: 3px;
+      }
+
+      .drag-placeholder {
+        height: 45px;
+        background-color: #f8f9fa;
+        border: 2px dashed #4dabf7;
+        margin: 2px 0;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4dabf7;
+        font-size: 12px;
+        opacity: 0.7;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+          <div class="sidebar-title">
+            <img src="/assets/icon-base-44ac7354.jpg" alt="Logo" />
+          </div>
+        </div>
+        <div class="menu-list" id="menuList">
+          <!-- 菜单项将通过JavaScript动态生成 -->
+        </div>
+      </div>
+      <div class="content">
+        <div class="content-header">
+          <div class="content-title" id="contentTitle">
+            <button class="toggle-btn" id="toggleBtn">
+              <svg viewBox="0 0 24 24">
+                <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z" />
+              </svg>
+            </button>
+            请选择一个菜单项
+          </div>
+          <div class="header-links" id="headerLinks">
+            <!-- 新标签打开的菜单项将显示在这里 -->
+          </div>
+          <button class="add-menu-header-btn" id="addMenuHeaderBtn">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="iframe-container">
+          <div class="error-message" id="errorMessage">
+            <div class="error-message-header">
+              <h3>无法加载网站</h3>
+              <button class="close-btn" id="closeErrorBtn">&times;</button>
+            </div>
+            <p>
+              由于网站的安全策略，无法直接嵌入。您可以在新标签页中打开该网站。
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+              <button id="openInNewTab">在新标签页打开</button>
+              <button id="reloadIframe" style="padding: 10px 16px; background-color: #28a745; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#218838'" onmouseout="this.style.backgroundColor='#28a745'">重新加载</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 添加/编辑菜单的模态框 -->
+    <div class="modal" id="menuModal">
+      <div class="modal-content">
+        <div class="form-group">
+          <label for="menuName">菜单名称</label>
+          <input
+            type="text"
+            id="menuName"
+            placeholder="输入菜单名称"
+            autocomplete="off"
+          />
+        </div>
+        <div class="form-group">
+          <label for="menuUrl">URL</label>
+          <input
+            type="text"
+            id="menuUrl"
+            placeholder="输入URL"
+            autocomplete="off"
+          />
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label" for="openInNewTabCheckbox">
+            <input type="checkbox" id="openInNewTabCheckbox" />
+            新标签页打开
+          </label>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-secondary" id="cancelBtn">取消</button>
+          <button class="btn btn-primary" id="saveBtn">保存</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 通知 -->
+    <div class="notification" id="notification"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
